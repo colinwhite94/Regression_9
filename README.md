@@ -1,0 +1,2 @@
+# Stat_Regression_9
+The goal of this analysis is to predict how many bikes be rented based on various covariates that we have which are year, season, holiday, working day, weather, temperature, humidity, and wind speed. The model will take counts as a response, asses relationships between bike rental counts, and we will use these estimated covariate/count relationships to predict bike rental counts with uncertainty.

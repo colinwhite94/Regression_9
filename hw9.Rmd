@@ -1,0 +1,107 @@
+---
+title: "Untitled"
+author: "Colin White"
+date: "4/8/2021"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+
+```{r}
+library(bestglm)
+library(car)
+
+setwd("~/Desktop/1A School/1A Winter 2021/STAT330/HW9")
+
+load("Bikes.RData")
+
+head(bikes)
+
+class(bikes$yr)
+```
+
+##1
+
+The goal of our analysis is to *predict* how many bikes be rented based on various covariates (year, season, holiday, working day, weather, temperateure, humidity, windspeed). So our statistical model will take counts as a response, asses relationships between bike rental counts, and we will use these estimated covariate/count relationshps to predict bike rental counts (with uncertainty)
+
+##2
+
+The response (bike rental counts) are counting number; therfore, a model that allows non-count values would be unsuitable. Thus, the normality assumptionwould not be correct, and we will instead assume that the data follow a poisson distribution. There will likely be violation of the MLR model assumptions (equal variance, linearity)
+
+
+##3
+
+* We are using AIC (of BIC) because it is derived an approximattion for cross-validation, and our primary goal is to *predict* bike counts. 
+* Using this, we select every covariate in the model: season, yr, holiday, workingday, weathersit, temp, hum, and windspeed. 
+
+
+```{r}
+best_model = bestglm(bikes, family = poisson, method = "exhaustive", IC = "AIC")$BestModel
+
+summary(best_model)
+```
+
+
+##4
+
+
+Let $Y_i$ be the counts of bikes rented and $x_{i1},...,x_{ip}$ be the covariates (including dummy variables) associated with season, yr, holiday, workingday, weathersit, temp, hum, and windspeed.
+
+\begin{equation*}
+\begin{aligned}
+Y_i &\overset{ind}{\slm} \textrm{Poisson}(\mu_i) \\
+\log(\mu_i) &=\beta_0 + \sum_{j = 1}^P x_{ij}\beta_j
+\end{aligned}
+\end{equation*}
+
+For this model we assume:
+
+1. We assume that there is alog linear relationship between the mean and the covariates. We asses below using...
+2. We assume that the data are independant because we believe that the covariates we are using explain the mean of counts and make the daily counts independent of one another. This may not be true because these data represent time-series, but we arent accountable for the material until hw\#10.
+3.We assume that the responce variable come from a poisson destribution becasue they are counts. 
+
+To assess the log-linearity assumption, we look at the added variable plots. The linearity assumption for most of the variable looks fine. However there appear strange nonlinearities in the AV-plots for season. That said, because these season variables are dummy variables, there is really no other way we can put these in the models. 
+
+```{r}
+avPlots(best_model, layout = c(1,2))
+```
+
+
+##5
+We fit the model while using `bestglm`. We provide a delightful of confidence intervals below. 
+
+* So, holiday all else constant, we are 95% conflict that the mean of counts increases by a factor of betwwn (#, #)
+
+```{r}
+library(knitr)
+
+CI = confint(best_model)
+
+#kable(round(exp(CI),3))
+round(exp(CI),3)
+CI
+
+```
+
+##6
+
+
+```{r}
+pred_data = data.frame(season = "Spring", yr="2012", holiday="No", workingday="Yes", weathersit="Misty", temp=0.34, hum=0.80, windspeed=0.18)
+
+preds_se = predict.glm(best_model, newdata = pred_data,se.fit = TRUE)
+
+CI_mean = preds_se$fit + c(-1,1) * qnorm(.975) * preds_se$se
+
+exp(preds_se$fit)
+
+exp(CI_mean)
+```
+
+
+So the predicted mean number of bikes rented on a day desscribed by problem 6 would be `r exp(preds_se$fit)`. THe 95\% confidence interval for this mean is (`r exp(CI_mean)`). In other words, we are 95% confident that when season is spring, yr="2012", hohliday="No", workingday="Yes", weathersit="Misty", temp=0.34, hum=0.80, windspeed=0.18, the mean counts (mean for all days with these characterisics) will be between (`r exp(CI_mean)`).
